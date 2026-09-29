@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | SmartAQI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Poppins', sans-serif; background: #f0fdf4; min-height: 100vh; }
+        nav {
+            background: #064e3b; color: white; padding: 1rem 5%;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        nav .logo { font-weight: 700; font-size: 1.3rem; }
+        nav .badge { background: #f59e0b; padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.75rem; margin-left: 0.5rem; }
+        .nav-actions a, .nav-actions button {
+            color: white; text-decoration: none; margin-left: 1rem;
+            background: #ef4444; border: none; padding: 0.5rem 1rem;
+            border-radius: 1.5rem; cursor: pointer; font-family: inherit;
+        }
+        .container { max-width: 1100px; margin: 2rem auto; padding: 0 1.5rem; }
+        .tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; }
+        .tab-btn {
+            padding: 0.75rem 1.5rem; border: none; background: white;
+            border-radius: 0.75rem; cursor: pointer; font-weight: 600;
+            color: #064e3b; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .tab-btn.active { background: #059669; color: white; }
+        .panel { display: none; }
+        .panel.active { display: block; }
+        .card {
+            background: white; padding: 1.5rem; border-radius: 1rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.06); margin-bottom: 1.5rem;
+        }
+        .card h3 { color: #064e3b; margin-bottom: 1rem; }
+        .form-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        .form-group label { display: block; font-size: 0.85rem; color: #374151; margin-bottom: 0.35rem; font-weight: 500; }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%; padding: 0.65rem; border: 1px solid #d1d5db;
+            border-radius: 0.5rem; font-family: inherit;
+        }
+        .form-group textarea { min-height: 70px; resize: vertical; }
+        .btn {
+            padding: 0.65rem 1.25rem; border: none; border-radius: 0.5rem;
+            cursor: pointer; font-weight: 600; font-family: inherit;
+        }
+        .btn-primary { background: #059669; color: white; }
+        .btn-primary:hover { background: #047857; }
+        .btn-secondary { background: #e5e7eb; color: #374151; }
+        .btn-danger { background: #ef4444; color: white; padding: 0.4rem 0.8rem; font-size: 0.8rem; }
+        .btn-edit { background: #3b82f6; color: white; padding: 0.4rem 0.8rem; font-size: 0.8rem; margin-right: 0.3rem; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid #e5e7eb; }
+        th { color: #064e3b; background: #f9fafb; }
+        .cat-good { color: #059669; font-weight: 600; }
+        .cat-moderate { color: #d97706; font-weight: 600; }
+        .cat-poor { color: #dc2626; font-weight: 600; }
+        .cat-hazardous { color: #991b1b; font-weight: 600; }
+        .role-admin { background: #fef3c7; color: #92400e; padding: 0.2rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; }
+        .role-user { background: #dbeafe; color: #1e40af; padding: 0.2rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; }
+        .msg { padding: 0.75rem; border-radius: 0.5rem; margin-bottom: 1rem; display: none; }
+        .msg.ok { background: #d1fae5; color: #065f46; display: block; }
+        .msg.err { background: #fee2e2; color: #991b1b; display: block; }
+        .form-actions { display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap; }
+        @media (max-width: 768px) {
+            table { font-size: 0.8rem; }
+            .form-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <div class="logo"><i class="fas fa-shield-alt"></i> SmartAQI Admin <span class="badge">ADMIN</span></div>
+    <div class="nav-actions">
+        <span id="adminName">Admin</span>
+        <button onclick="logout()">Logout</button>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="tabs">
+        <button class="tab-btn active" onclick="showTab('aqi')"><i class="fas fa-cloud"></i> Manage AQI</button>
+        <button class="tab-btn" onclick="showTab('users')"><i class="fas fa-users"></i> Manage Users</button>
+    </div>
+
+    <div id="msgBox" class="msg"></div>
+
+    <!-- AQI Panel -->
+    <div id="aqiPanel" class="panel active">
+        <div class="card">
+            <h3 id="aqiFormTitle"><i class="fas fa-plus-circle"></i> Add City AQI</h3>
+            <form id="aqiForm" onsubmit="saveAQI(event)">
+                <input type="hidden" id="editMode" value="add">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>City Name *</label>
+                        <input type="text" id="cityName" placeholder="e.g. Delhi" required>
+                    </div>
+                    <div class="form-group">
+                        <label>AQI Value *</label>
+                        <input type="number" id="aqiValue" min="0" max="500" required oninput="autoCategory()">
+                    </div>
+                    <div class="form-group">
+                        <label>Category</label>
+                        <select id="category">
+                            <option value="Good">Good (0-50)</option>
+                            <option value="Moderate">Moderate (51-100)</option>
+                            <option value="Poor">Poor (101-200)</option>
+                            <option value="Hazardous">Hazardous (201+)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>PM2.5 (µg/m³)</label>
+                        <input type="number" id="pm25" step="0.1" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>PM10 (µg/m³)</label>
+                        <input type="number" id="pm10" step="0.1" min="0">
+                    </div>
+                </div>
+                <div class="form-group" style="margin-top:1rem;">
+                    <label>Health Message / Suggestion *</label>
+                    <textarea id="healthTip" placeholder="e.g. Wear a mask when going out. Limit outdoor activities." required></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" id="aqiSubmitBtn">Add AQI</button>
+                    <button type="button" class="btn btn-secondary" onclick="resetAqiForm()" id="cancelBtn" style="display:none;">Cancel Edit</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="card">
+            <h3><i class="fas fa-list"></i> All Cities AQI Data</h3>
+            <div style="overflow-x:auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>City</th><th>AQI</th><th>Category</th><th>PM2.5</th><th>PM10</th>
+                            <th>Health Message</th><th>Updated</th><th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="aqiTableBody">
+                        <tr><td colspan="8">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Users Panel -->
+    <div id="usersPanel" class="panel">
+        <div class="card">
+            <h3><i class="fas fa-users-cog"></i> Registered Users</h3>
+            <p style="color:#6b7280;font-size:0.9rem;margin-bottom:1rem;">Admin accounts cannot be deleted. You cannot delete your own account.</p>
+            <div style="overflow-x:auto;">
+                <table>
+                    <thead>
+                        <tr><th>ID</th><th>Name</th><th>Email</th><th>Role</th><th>Actions</th></tr>
+                    </thead>
+                    <tbody id="usersTableBody">
+                        <tr><td colspan="5">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API = 'api';
+    let aqiList = [];
+
+    function showMsg(text, ok) {
+        const box = document.getElementById('msgBox');
+        box.textContent = text;
+        box.className = 'msg ' + (ok ? 'ok' : 'err');
+        setTimeout(() => { box.className = 'msg'; }, 4000);
+    }
+
+    function showTab(name) {
+        document.querySelectorAll('.tab-btn').forEach((b, i) => {
+            b.classList.toggle('active', (name === 'aqi' && i === 0) || (name === 'users' && i === 1));
+        });
+        document.getElementById('aqiPanel').classList.toggle('active', name === 'aqi');
+        document.getElementById('usersPanel').classList.toggle('active', name === 'users');
+    }
+
+    function autoCategory() {
+        const aqi = parseInt(document.getElementById('aqiValue').value) || 0;
+        const sel = document.getElementById('category');
+        if (aqi <= 50) sel.value = 'Good';
+        else if (aqi <= 100) sel.value = 'Moderate';
+        else if (aqi <= 200) sel.value = 'Poor';
+        else sel.value = 'Hazardous';
+    }
+
+    function catClass(c) {
+        if (c === 'Good') return 'cat-good';
+        if (c === 'Moderate') return 'cat-moderate';
+        if (c === 'Poor') return 'cat-poor';
+        return 'cat-hazardous';
+    }
+
+    async function checkAdmin() {
+        const res = await fetch(`${API}/user`, { credentials: 'include' });
+        if (res.status === 401) { window.location.href = 'admin.html'; return false; }
+        const data = await res.json();
+        if (data.role !== 'admin') {
+            alert('Admin access only');
+            window.location.href = 'login.html';
+            return false;
+        }
+        document.getElementById('adminName').textContent = data.fullname || 'Admin';
+        return true;
+    }
+
+    async function loadAQI() {
+        const res = await fetch(`${API}/admin/aqi`, { credentials: 'include' });
+        const data = await res.json();
+        const tbody = document.getElementById('aqiTableBody');
+        if (!res.ok) {
+            tbody.innerHTML = `<tr><td colspan="8">${data.error || 'Failed to load'}</td></tr>`;
+            return;
+        }
+        if (!data.length) {
+            tbody.innerHTML = '<tr><td colspan="8">No AQI data yet. Add a city above.</td></tr>';
+            return;
+        }
+        aqiList = data;
+        tbody.innerHTML = data.map((row, i) => `
+            <tr>
+                <td><strong>${escapeHtml(row.city_name)}</strong></td>
+                <td>${row.aqi_value}</td>
+                <td class="${catClass(row.category)}">${row.category}</td>
+                <td>${row.pm25}</td>
+                <td>${row.pm10}</td>
+                <td style="max-width:200px;">${escapeHtml(row.health_tip)}</td>
+                <td>${row.last_updated || '-'}</td>
+                <td>
+                    <button class="btn btn-edit" onclick="editAQI(${i})">Edit</button>
+                    <button class="btn btn-danger" onclick="deleteAQI(${i})">Delete</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function escapeHtml(s) {
+        if (!s) return '';
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function editAQI(index) {
+        const row = aqiList[index];
+        document.getElementById('editMode').value = 'edit';
+        document.getElementById('aqiFormTitle').innerHTML = '<i class="fas fa-edit"></i> Edit City AQI';
+        document.getElementById('aqiSubmitBtn').textContent = 'Update AQI';
+        document.getElementById('cancelBtn').style.display = 'inline-block';
+        document.getElementById('cityName').value = row.city_name;
+        document.getElementById('cityName').readOnly = true;
+        document.getElementById('aqiValue').value = row.aqi_value;
+        document.getElementById('category').value = row.category;
+        document.getElementById('pm25').value = row.pm25;
+        document.getElementById('pm10').value = row.pm10;
+        document.getElementById('healthTip').value = row.health_tip;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function resetAqiForm() {
+        document.getElementById('aqiForm').reset();
+        document.getElementById('editMode').value = 'add';
+        document.getElementById('aqiFormTitle').innerHTML = '<i class="fas fa-plus-circle"></i> Add City AQI';
+        document.getElementById('aqiSubmitBtn').textContent = 'Add AQI';
+        document.getElementById('cancelBtn').style.display = 'none';
+        document.getElementById('cityName').readOnly = false;
+    }
+
+    async function saveAQI(e) {
+        e.preventDefault();
+        const mode = document.getElementById('editMode').value;
+        const body = {
+            city_name: document.getElementById('cityName').value.trim(),
+            aqi_value: document.getElementById('aqiValue').value,
+            category: document.getElementById('category').value,
+            pm25: document.getElementById('pm25').value || '0',
+            pm10: document.getElementById('pm10').value || '0',
+            health_tip: document.getElementById('healthTip').value.trim()
+        };
+        const url = `${API}/admin/aqi`;
+        const res = await fetch(url, {
+            method: mode === 'edit' ? 'PUT' : 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            showMsg(data.error || 'Failed to save', false);
+            return;
+        }
+        showMsg(data.message || 'Saved successfully', true);
+        resetAqiForm();
+        loadAQI();
+    }
+
+    async function deleteAQI(index) {
+        const city = aqiList[index].city_name;
+        if (!confirm(`Delete AQI data for ${city}?`)) return;
+        const res = await fetch(`${API}/admin/aqi?city=${encodeURIComponent(city)}`, {
+            method: 'DELETE',
+            credentials: 'include'
+        });
+        const data = await res.json();
+        if (!res.ok) { showMsg(data.error || 'Delete failed', false); return; }
+        showMsg('City deleted', true);
+        loadAQI();
+    }
+
+    async function loadUsers() {
+        const res = await fetch(`${API}/admin/users`, { credentials: 'include' });
+        const data = await res.json();
+        const tbody = document.getElementById('usersTableBody');
+        if (!res.ok) {
+            tbody.innerHTML = `<tr><td colspan="5">${data.error || 'Failed to load'}</td></tr>`;
+            return;
+        }
+        if (!data.length) {
+            tbody.innerHTML = '<tr><td colspan="5">No users registered yet.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = data.map(u => `
+            <tr>
+                <td>${u.id}</td>
+                <td>${escapeHtml(u.fullname)}</td>
+                <td>${escapeHtml(u.email)}</td>
+                <td><span class="role-${u.role}">${u.role}</span></td>
+                <td>
+                    ${u.role === 'user'
+                        ? `<button class="btn btn-danger" onclick="deleteUser(${u.id}, '${escapeHtml(u.email).replace(/'/g, "\\'")}')">Delete</button>`
+                        : '<span style="color:#9ca3af;font-size:0.8rem;">Protected</span>'}
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    async function deleteUser(id, email) {
+        if (!confirm(`Delete user ${email}?`)) return;
+        const res = await fetch(`${API}/admin/users?id=${id}`, {
+            method: 'DELETE',
+            credentials: 'include'
+        });
+        const data = await res.json();
+        if (!res.ok) { showMsg(data.error || 'Delete failed', false); return; }
+        showMsg('User deleted', true);
+        loadUsers();
+    }
+
+    async function logout() {
+        await fetch(`${API}/logout`, { method: 'POST', credentials: 'include' });
+        window.location.href = 'admin.html';
+    }
+
+    (async function init() {
+        if (await checkAdmin()) {
+            loadAQI();
+            loadUsers();
+        }
+    })();
+</script>
+</body>
+</html>

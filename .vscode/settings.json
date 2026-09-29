@@ -1,0 +1,14 @@
+{
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "java.project.sourcePaths": [
+        "backend/src"
+    ],
+    "java.project.outputPath": "WEB-INF/classes",
+    "java.project.referencedLibraries": [
+        "backend/lib/**/*.jar",
+        "backend/*.jar",
+        "WEB-INF/lib/**/*.jar"
+    ],
+    "java.import.gradle.enabled": false,
+    "java.import.maven.enabled": false
+}
